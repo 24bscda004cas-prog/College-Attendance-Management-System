@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Student Attendance</h2>
+
+<div>
+    <p><strong>Register Number:</strong> {{ student.register_number }}</p>
+    <p><strong>Name:</strong> {{ student.full_name }}</p>
+    <p><strong>Department:</strong> {{ student.get_department_display }}</p>
+    <p><strong>Year:</strong> {{ student.get_year_display }}</p>
+    <p><strong>Section:</strong> {{ student.section }}</p>
+</div>
+
+<hr>
+
+<h3>Attendance Summary</h3>
+
+<p>Total: {{ total }}</p>
+<p>Present: {{ present }}</p>
+<p>Absent: {{ absent }}</p>
+<p>OD: {{ od }}</p>
+<p>Medical Leave: {{ ml }}</p>
+<p>Attendance Percentage: {{ percentage }}%</p>
+
+<hr>
+
+<h3>Attendance History</h3>
+
+<table border="1" cellpadding="10">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Period</th>
+            <th>Subject</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for record in attendance %}
+        <tr>
+            <td>{{ record.date }}</td>
+            <td>{{ record.period }}</td>
+            <td>{{ record.subject.code }} - {{ record.subject.name }}</td>
+            <td>{{ record.get_status_display }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4">No attendance records found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
