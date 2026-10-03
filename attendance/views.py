@@ -10,11 +10,13 @@ from .models import Student, Faculty, Subject, Attendance
 def home(request):
     if request.user.is_authenticated:
         return dashboard(request)
+
     return render(request, "home.html")
 
 
 @login_required
 def dashboard(request):
+
     counts = {
         item["status"]: item["total"]
         for item in Attendance.objects
@@ -22,16 +24,32 @@ def dashboard(request):
         .annotate(total=Count("id"))
     }
 
+    total_attendance = sum(counts.values())
+
+    attendance_percentage = (
+        round((counts.get("P", 0) / total_attendance) * 100, 2)
+        if total_attendance > 0
+        else 0
+    )
+
     context = {
+
+        # Basic counts
         "total_students": Student.objects.count(),
         "total_faculty": Faculty.objects.count(),
         "total_subjects": Subject.objects.count(),
 
+        # Attendance counts
         "present": counts.get("P", 0),
         "absent": counts.get("A", 0),
         "od": counts.get("OD", 0),
         "ml": counts.get("ML", 0),
 
+        # Attendance analysis
+        "total_attendance": total_attendance,
+        "attendance_percentage": attendance_percentage,
+
+        # Dashboard cards
         "rows": [
             ("Total Students", Student.objects.count()),
             ("Faculty", Faculty.objects.count()),
@@ -42,6 +60,7 @@ def dashboard(request):
             ("ML", counts.get("ML", 0)),
         ],
 
+        # Students by year
         "year_counts": [
             ("1st Year", Student.objects.filter(year=1).count()),
             ("2nd Year", Student.objects.filter(year=2).count()),
@@ -54,6 +73,7 @@ def dashboard(request):
 
 @login_required
 def student_list(request):
+
     students = Student.objects.all().order_by(
         "year",
         "department",
@@ -79,24 +99,47 @@ def attendance_mark(request):
         Save Present / Absent / OD / ML for students.
     """
 
-    subjects = Subject.objects.all().order_by("year", "code")
+    subjects = Subject.objects.all().order_by(
+        "year",
+        "code"
+    )
 
     selected_subject = None
-    selected_date = request.POST.get("date") or request.GET.get("date")
-    selected_period = request.POST.get("period") or request.GET.get("period", "1")
+
+    selected_date = (
+        request.POST.get("date")
+        or request.GET.get("date")
+    )
+
+    selected_period = (
+        request.POST.get("period")
+        or request.GET.get("period", "1")
+    )
 
     if request.method == "POST":
 
         subject_id = request.POST.get("subject")
 
         if not subject_id:
-            messages.error(request, "Please select a subject.")
+            messages.error(
+                request,
+                "Please select a subject."
+            )
+
             return redirect("attendance_mark")
 
         try:
-            selected_subject = Subject.objects.get(id=subject_id)
+            selected_subject = Subject.objects.get(
+                id=subject_id
+            )
+
         except Subject.DoesNotExist:
-            messages.error(request, "Subject not found.")
+
+            messages.error(
+                request,
+                "Subject not found."
+            )
+
             return redirect("attendance_mark")
 
         students = Student.objects.filter(
@@ -113,14 +156,24 @@ def attendance_mark(request):
                 f"status_{student.id}"
             )
 
-            if status not in ["P", "A", "OD", "ML"]:
+            if status not in [
+                "P",
+                "A",
+                "OD",
+                "ML"
+            ]:
                 continue
 
             Attendance.objects.update_or_create(
+
                 student=student,
+
                 subject=selected_subject,
+
                 date=selected_date,
+
                 period=selected_period,
+
                 defaults={
                     "status": status,
                     "marked_at": timezone.now(),
@@ -137,7 +190,9 @@ def attendance_mark(request):
     students = Student.objects.none()
 
     if request.GET.get("subject"):
+
         try:
+
             selected_subject = Subject.objects.get(
                 id=request.GET.get("subject")
             )
@@ -151,6 +206,7 @@ def attendance_mark(request):
             )
 
         except Subject.DoesNotExist:
+
             selected_subject = None
 
     return render(
@@ -173,17 +229,24 @@ def student_attendance(request, student_id=None):
     """
 
     if student_id:
-        student = Student.objects.get(id=student_id)
+
+        student = Student.objects.get(
+            id=student_id
+        )
+
     else:
+
         student = Student.objects.filter(
             user=request.user
         ).first()
 
     if not student:
+
         messages.error(
             request,
             "Student profile not found."
         )
+
         return redirect("dashboard")
 
     attendance = Attendance.objects.filter(
@@ -207,6 +270,7 @@ def student_attendance(request, student_id=None):
     percentage = 0
 
     if total > 0:
+
         percentage = round(
             (counts.get("P", 0) / total) * 100,
             2

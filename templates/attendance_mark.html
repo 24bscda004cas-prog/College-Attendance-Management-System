@@ -1,154 +1,452 @@
 {% extends "base.html" %}
 
+{% block title %}Mark Attendance{% endblock %}
+
 {% block content %}
 
-<h2>Mark Attendance</h2>
+<style>
+    .attendance-page {
+        padding: 10px 0 40px;
+    }
 
-<form method="get">
+    .page-header {
+        margin-bottom: 25px;
+    }
 
-    <label>Subject:</label>
+    .page-header h1 {
+        margin: 0;
+        font-size: 30px;
+        color: #0f172a;
+    }
 
-    <select name="subject" required>
-        <option value="">Select Subject</option>
+    .page-header p {
+        margin-top: 7px;
+        color: #64748b;
+    }
 
-        {% for subject in subjects %}
-            <option value="{{ subject.id }}"
-                {% if selected_subject and selected_subject.id == subject.id %}
-                    selected
-                {% endif %}
-            >
-                {{ subject.code }} - {{ subject.name }}
-            </option>
-        {% endfor %}
+    .selection-card {
+        background: white;
+        padding: 25px;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+        margin-bottom: 25px;
+    }
 
-    </select>
+    .selection-card h2 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        color: #1e293b;
+    }
 
-    <label>Date:</label>
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr 1fr auto;
+        gap: 16px;
+        align-items: end;
+    }
 
-    <input
-        type="date"
-        name="date"
-        value="{{ selected_date|default:'' }}"
-        required
-    >
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+    }
 
-    <label>Period:</label>
+    .form-group label {
+        font-size: 14px;
+        font-weight: 700;
+        color: #475569;
+    }
 
-    <select name="period">
-        {% for p in "123456789"|make_list %}
-            <option value="{{ p }}"
-                {% if selected_period == p %}
-                    selected
-                {% endif %}
-            >
-                Period {{ p }}
-            </option>
-        {% endfor %}
-    </select>
+    .form-group select,
+    .form-group input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 11px 13px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        background: #f8fafc;
+        font-size: 14px;
+        outline: none;
+    }
 
-    <button type="submit">
-        Load Students
-    </button>
+    .form-group select:focus,
+    .form-group input:focus {
+        border-color: #2563eb;
+        background: white;
+    }
 
-</form>
+    .btn {
+        border: none;
+        border-radius: 10px;
+        padding: 12px 18px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .btn-load {
+        background: #2563eb;
+        color: white;
+    }
+
+    .btn-load:hover {
+        background: #1d4ed8;
+    }
+
+    .student-card {
+        background: white;
+        padding: 25px;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+    }
+
+    .student-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        gap: 15px;
+    }
+
+    .student-header h2 {
+        margin: 0;
+        color: #1e293b;
+    }
+
+    .student-info {
+        color: #64748b;
+        font-size: 14px;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+    }
+
+    .attendance-table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 12px;
+    }
+
+    .attendance-table th {
+        background: #f1f5f9;
+        color: #475569;
+        text-align: left;
+        padding: 14px;
+        font-size: 14px;
+    }
+
+    .attendance-table td {
+        padding: 13px 14px;
+        border-bottom: 1px solid #e2e8f0;
+        color: #334155;
+    }
+
+    .attendance-table tr:hover {
+        background: #f8fafc;
+    }
+
+    .register-number {
+        font-weight: 700;
+        color: #2563eb;
+    }
+
+    .status-select {
+        padding: 8px 12px;
+        border-radius: 9px;
+        border: 1px solid #cbd5e1;
+        background: white;
+        font-weight: 600;
+        outline: none;
+    }
+
+    .save-area {
+        margin-top: 20px;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .btn-save {
+        background: #16a34a;
+        color: white;
+        padding: 13px 24px;
+    }
+
+    .btn-save:hover {
+        background: #15803d;
+    }
+
+    .empty-message {
+        padding: 25px;
+        text-align: center;
+        color: #64748b;
+        background: #f8fafc;
+        border-radius: 12px;
+    }
+
+    @media (max-width: 900px) {
+        .form-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .student-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .save-area {
+            justify-content: stretch;
+        }
+
+        .btn-save {
+            width: 100%;
+        }
+    }
+</style>
 
 
-{% if students %}
+<div class="attendance-page">
 
-<hr>
-
-<form method="post">
-
-    {% csrf_token %}
-
-    <input
-        type="hidden"
-        name="subject"
-        value="{{ selected_subject.id }}"
-    >
-
-    <input
-        type="hidden"
-        name="date"
-        value="{{ selected_date }}"
-    >
-
-    <input
-        type="hidden"
-        name="period"
-        value="{{ selected_period }}"
-    >
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>👩‍🏫 Mark Attendance</h1>
+        <p>Faculty Attendance Management</p>
+    </div>
 
 
-    <table border="1" cellpadding="10">
+    <!-- Selection Section -->
+    <div class="selection-card">
 
-        <thead>
-            <tr>
-                <th>Register Number</th>
-                <th>Student Name</th>
-                <th>Department</th>
-                <th>Status</th>
-            </tr>
-        </thead>
+        <h2>📋 Select Class Details</h2>
 
-        <tbody>
+        <form method="get">
 
-            {% for student in students %}
+            <div class="form-grid">
 
-            <tr>
+                <!-- Subject -->
+                <div class="form-group">
+                    <label>Subject</label>
 
-                <td>
-                    {{ student.register_number }}
-                </td>
+                    <select name="subject" required>
 
-                <td>
-                    {{ student.full_name }}
-                </td>
-
-                <td>
-                    {{ student.get_department_display }}
-                </td>
-
-                <td>
-
-                    <select name="status_{{ student.id }}">
-
-                        <option value="P">
-                            Present
+                        <option value="">
+                            Select Subject
                         </option>
 
-                        <option value="A">
-                            Absent
+                        {% for subject in subjects %}
+
+                        <option
+                            value="{{ subject.id }}"
+                            {% if selected_subject and selected_subject.id == subject.id %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ subject.code }} - {{ subject.name }}
                         </option>
 
-                        <option value="OD">
-                            On Duty
+                        {% endfor %}
+
+                    </select>
+                </div>
+
+
+                <!-- Date -->
+                <div class="form-group">
+
+                    <label>Date</label>
+
+                    <input
+                        type="date"
+                        name="date"
+                        value="{{ selected_date|default:'' }}"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- Period -->
+                <div class="form-group">
+
+                    <label>Period</label>
+
+                    <select name="period">
+
+                        {% for p in "123456789"|make_list %}
+
+                        <option
+                            value="{{ p }}"
+                            {% if selected_period == p %}
+                                selected
+                            {% endif %}
+                        >
+                            Period {{ p }}
                         </option>
 
-                        <option value="ML">
-                            Medical Leave
-                        </option>
+                        {% endfor %}
 
                     </select>
 
-                </td>
+                </div>
 
-            </tr>
 
-            {% endfor %}
+                <!-- Load Button -->
+                <button
+                    type="submit"
+                    class="btn btn-load"
+                >
+                    Load Students
+                </button>
 
-        </tbody>
+            </div>
 
-    </table>
+        </form>
 
-    <br>
+    </div>
 
-    <button type="submit">
-        Save Attendance
-    </button>
 
-</form>
+    <!-- Students -->
+    {% if students %}
 
-{% endif %}
+    <div class="student-card">
+
+        <div class="student-header">
+
+            <div>
+                <h2>👨‍🎓 Student Attendance</h2>
+
+                <div class="student-info">
+                    {{ selected_subject.code }} -
+                    {{ selected_subject.name }}
+                    &nbsp; | &nbsp;
+                    Period {{ selected_period }}
+                </div>
+            </div>
+
+        </div>
+
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            <input
+                type="hidden"
+                name="subject"
+                value="{{ selected_subject.id }}"
+            >
+
+            <input
+                type="hidden"
+                name="date"
+                value="{{ selected_date }}"
+            >
+
+            <input
+                type="hidden"
+                name="period"
+                value="{{ selected_period }}"
+            >
+
+
+            <div class="table-wrapper">
+
+                <table class="attendance-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>Register Number</th>
+                            <th>Student Name</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for student in students %}
+
+                        <tr>
+
+                            <td class="register-number">
+                                {{ student.register_number }}
+                            </td>
+
+                            <td>
+                                {{ student.full_name }}
+                            </td>
+
+                            <td>
+                                {{ student.get_department_display }}
+                            </td>
+
+                            <td>
+
+                                <select
+                                    name="status_{{ student.id }}"
+                                    class="status-select"
+                                >
+
+                                    <option value="P">
+                                        🟢 Present
+                                    </option>
+
+                                    <option value="A">
+                                        🔴 Absent
+                                    </option>
+
+                                    <option value="OD">
+                                        🟠 On Duty
+                                    </option>
+
+                                    <option value="ML">
+                                        🟣 Medical Leave
+                                    </option>
+
+                                </select>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <div class="save-area">
+
+                <button
+                    type="submit"
+                    class="btn btn-save"
+                >
+                    💾 Save Attendance
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+    {% endif %}
+
+</div>
 
 {% endblock %}

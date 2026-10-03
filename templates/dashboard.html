@@ -1,1 +1,513 @@
-{% extends "base.html" %}{% block title %}Dashboard{% endblock %}{% block content %}<h1>Attendance Dashboard</h1><div class="grid">{% for label,value in rows %}<div class="stat"><small>{{label}}</small><strong>{{value}}</strong></div>{% endfor %}</div><section class="card"><h2>Students by Year</h2><table><tr><th>Year</th><th>Students</th></tr>{% for y,n in year_counts %}<tr><td>{{y}}</td><td>{{n}}</td></tr>{% endfor %}</table></section>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<style>
+.dashboard {
+    padding: 10px 0 30px;
+}
+
+.dashboard-header {
+    margin-bottom: 25px;
+}
+
+.dashboard-header h1 {
+    margin: 0;
+    font-size: 32px;
+}
+
+.dashboard-header p {
+    margin-top: 8px;
+    color: #64748b;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 18px;
+    margin-bottom: 28px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+    border: 1px solid #e2e8f0;
+}
+
+.stat-card .label {
+    font-size: 14px;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.stat-card .value {
+    display: block;
+    font-size: 30px;
+    font-weight: 800;
+    margin-top: 8px;
+}
+
+.stat-card.students .value {
+    color: #2563eb;
+}
+
+.stat-card.faculty .value {
+    color: #7c3aed;
+}
+
+.stat-card.subjects .value {
+    color: #0891b2;
+}
+
+.stat-card.present .value {
+    color: #16a34a;
+}
+
+.stat-card.absent .value {
+    color: #dc2626;
+}
+
+.stat-card.od .value {
+    color: #ea580c;
+}
+
+.stat-card.ml .value {
+    color: #9333ea;
+}
+
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+}
+
+.card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+    border: 1px solid #e2e8f0;
+}
+
+.card h2 {
+    margin-top: 0;
+    margin-bottom: 18px;
+    font-size: 20px;
+}
+
+.attendance-list {
+    display: grid;
+    gap: 14px;
+}
+
+.attendance-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.badge.present {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge.absent {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.badge.od {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+.badge.ml {
+    background: #f3e8ff;
+    color: #6b21a8;
+}
+
+.visual-card {
+    margin-top: 22px;
+}
+
+.visual-list {
+    display: grid;
+    gap: 18px;
+}
+
+.visual-item {
+    width: 100%;
+}
+
+.visual-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 7px;
+}
+
+.visual-header strong {
+    color: #334155;
+}
+
+.visual-header span {
+    font-weight: 700;
+    color: #475569;
+}
+
+.progress-bg {
+    width: 100%;
+    height: 12px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 12px;
+    border-radius: 10px;
+}
+
+.progress-present {
+    background: #16a34a;
+}
+
+.progress-absent {
+    background: #dc2626;
+}
+
+.progress-od {
+    background: #ea580c;
+}
+
+.progress-ml {
+    background: #9333ea;
+}
+
+.bg-present {
+    background: #dcfce7;
+}
+
+.bg-absent {
+    background: #fee2e2;
+}
+
+.bg-od {
+    background: #ffedd5;
+}
+
+.bg-ml {
+    background: #f3e8ff;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    text-align: left;
+    padding: 12px;
+    background: #f1f5f9;
+    color: #475569;
+}
+
+td {
+    padding: 13px 12px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+@media (max-width: 800px) {
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+
+<div class="dashboard">
+
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <h1>🎓 Attendance Dashboard</h1>
+        <p>College Attendance Management System</p>
+    </div>
+    <div class="card" style="margin-bottom: 22px;">
+    <h2>🎯 Overall Attendance Percentage</h2>
+
+    <div style="display:flex; align-items:center; gap:20px;">
+        <div style="
+            font-size:42px;
+            font-weight:800;
+            color:#2563eb;
+        ">
+            {{ attendance_percentage }}%
+        </div>
+
+        <div style="flex:1;">
+            <div style="
+                width:100%;
+                height:14px;
+                background:#e2e8f0;
+                border-radius:10px;
+                overflow:hidden;
+            ">
+                <div style="
+                    width:{{ attendance_percentage }}%;
+                    height:14px;
+                    background:#2563eb;
+                    border-radius:10px;
+                "></div>
+            </div>
+
+            <p style="margin-top:8px; color:#64748b;">
+                Based on all recorded attendance
+            </p>
+        </div>
+    </div>
+</div>
+
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+
+        {% for label,value in rows %}
+
+            {% if "Students" in label %}
+                <div class="stat-card students">
+                    <span class="label">👨‍🎓 {{ label }}</span>
+                    <span class="value">{{ value }}</span>
+                </div>
+
+            {% elif "Faculty" in label %}
+                <div class="stat-card faculty">
+                    <span class="label">👨‍🏫 {{ label }}</span>
+                    <span class="value">{{ value }}</span>
+                </div>
+
+            {% elif "Subjects" in label %}
+                <div class="stat-card subjects">
+                    <span class="label">📚 {{ label }}</span>
+                    <span class="value">{{ value }}</span>
+                </div>
+
+            {% elif "Present" in label %}
+                <div class="stat-card present">
+                    <span class="label">🟢 {{ label }}</span>
+                    <span class="value">{{ value }}</span>
+                </div>
+
+            {% elif "Absent" in label %}
+                <div class="stat-card absent">
+                    <span class="label">🔴 {{ label }}</span>
+                    <span class="value">{{ value }}</span>
+                </div>
+
+            {% elif "OD" in label %}
+                <div class="stat-card od">
+                    <span class="label">🟠 {{ label }}</span>
+                    <span class="value">{{ value }}</span>
+                </div>
+
+            {% elif "ML" in label %}
+                <div class="stat-card ml">
+                    <span class="label">🟣 {{ label }}</span>
+                    <span class="value">{{ value }}</span>
+                </div>
+
+            {% else %}
+                <div class="stat-card">
+                    <span class="label">{{ label }}</span>
+                    <span class="value">{{ value }}</span>
+                </div>
+            {% endif %}
+
+        {% endfor %}
+
+    </div>
+
+
+    <!-- Main Content -->
+    <div class="content-grid">
+
+        <!-- Attendance Overview -->
+        <div class="card">
+
+            <h2>📊 Attendance Overview</h2>
+
+            <div class="attendance-list">
+
+                {% for label,value in rows %}
+
+                    {% if "Present" in label %}
+
+                    <div class="attendance-row">
+                        <span>Present</span>
+                        <span class="badge present">{{ value }}</span>
+                    </div>
+
+                    {% elif "Absent" in label %}
+
+                    <div class="attendance-row">
+                        <span>Absent</span>
+                        <span class="badge absent">{{ value }}</span>
+                    </div>
+
+                    {% elif "OD" in label %}
+
+                    <div class="attendance-row">
+                        <span>On Duty</span>
+                        <span class="badge od">{{ value }}</span>
+                    </div>
+
+                    {% elif "ML" in label %}
+
+                    <div class="attendance-row">
+                        <span>Medical Leave</span>
+                        <span class="badge ml">{{ value }}</span>
+                    </div>
+
+                    {% endif %}
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+
+        <!-- Students by Year -->
+        <div class="card">
+
+            <h2>📚 Students by Year</h2>
+
+            <table>
+
+                <tr>
+                    <th>Year</th>
+                    <th>Students</th>
+                </tr>
+
+                {% for y,n in year_counts %}
+
+                <tr>
+                    <td>{{ y }}</td>
+                    <td><strong>{{ n }}</strong></td>
+                </tr>
+
+                {% endfor %}
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <!-- Attendance Visualization -->
+    <div class="card visual-card">
+
+        <h2>📈 Attendance Status Visualization</h2>
+
+        <div class="visual-list">
+
+            {% for label,value in rows %}
+
+                {% if "Present" in label %}
+
+                <div class="visual-item">
+
+                    <div class="visual-header">
+                        <strong>🟢 Present</strong>
+                        <span>{{ value }}</span>
+                    </div>
+
+                    <div class="progress-bg bg-present">
+                        <div
+                            class="progress-bar progress-present"
+                            style="width: {{ value }}%;">
+                        </div>
+                    </div>
+
+                </div>
+
+
+                {% elif "Absent" in label %}
+
+                <div class="visual-item">
+
+                    <div class="visual-header">
+                        <strong>🔴 Absent</strong>
+                        <span>{{ value }}</span>
+                    </div>
+
+                    <div class="progress-bg bg-absent">
+                        <div
+                            class="progress-bar progress-absent"
+                            style="width: {{ value }}%;">
+                        </div>
+                    </div>
+
+                </div>
+
+
+                {% elif "OD" in label %}
+
+                <div class="visual-item">
+
+                    <div class="visual-header">
+                        <strong>🟠 On Duty</strong>
+                        <span>{{ value }}</span>
+                    </div>
+
+                    <div class="progress-bg bg-od">
+                        <div
+                            class="progress-bar progress-od"
+                            style="width: {{ value }}%;">
+                        </div>
+                    </div>
+
+                </div>
+
+
+                {% elif "ML" in label %}
+
+                <div class="visual-item">
+
+                    <div class="visual-header">
+                        <strong>🟣 Medical Leave</strong>
+                        <span>{{ value }}</span>
+                    </div>
+
+                    <div class="progress-bg bg-ml">
+                        <div
+                            class="progress-bar progress-ml"
+                            style="width: {{ value }}%;">
+                        </div>
+                    </div>
+
+                </div>
+
+                {% endif %}
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
