@@ -1,0 +1,100 @@
+{% extends "admin/base.html" %}
+
+{% block title %}College Attendance Administration{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+
+<style>
+    body {
+        background: #f4f7fb !important;
+    }
+
+    #header {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+        color: white !important;
+        padding: 15px 25px !important;
+    }
+
+    #branding h1 {
+        font-size: 22px !important;
+        font-weight: 700 !important;
+    }
+
+    #branding h1 a {
+        color: white !important;
+    }
+
+    #user-tools {
+        color: white !important;
+    }
+
+    #user-tools a {
+        color: white !important;
+    }
+
+    #nav-sidebar {
+        background: white !important;
+    }
+
+    .module {
+        border-radius: 12px !important;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        border: none !important;
+    }
+
+    .module caption {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+        color: white !important;
+        font-weight: 600 !important;
+    }
+
+    .module h2 {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+        color: white !important;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .button,
+    input[type="submit"],
+    input[type="button"],
+    .submit-row input,
+    a.button {
+        border-radius: 8px !important;
+    }
+
+    a:link,
+    a:visited {
+        color: #4f46e5;
+    }
+
+    a:hover {
+        color: #7c3aed;
+    }
+
+    .breadcrumbs {
+        background: white !important;
+        border-radius: 8px;
+        margin: 10px 0;
+    }
+
+    #content {
+        padding: 20px !important;
+    }
+
+    .object-tools a {
+        border-radius: 8px !important;
+    }
+</style>
+{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+    <h1>
+        <a href="{% url 'admin:index' %}">
+            🎓 College Attendance Administration
+        </a>
+    </h1>
+</div>
+{% endblock %}
